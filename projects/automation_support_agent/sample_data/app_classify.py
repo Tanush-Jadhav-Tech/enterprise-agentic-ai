@@ -12,7 +12,6 @@ import time
 import logging
 from openai import OpenAI
 from dotenv import load_dotenv
-from tools import TOOL_REGISTRY, SAFE_TOOLS, RISKY_TOOLS
 
 load_dotenv()
 
@@ -130,124 +129,38 @@ Ticket: {description}"""
     log.info(f"Classified: {result['category']} ({result['confidence']})")
     return result
 
-# ── Step 2: process_ticket() — connects classifier to tools ──────────────────
-
-CONFIDENCE_THRESHOLD = 0.60
-
-def process_ticket(description: str) -> dict:
-    """
-    Process a support ticket end-to-end:
-    classify → route → call tool → return combined result.
-
-    Args:
-        description: Free-text ticket description
-
-    Returns:
-        dict with keys: ticket, classification, tool_result
-    """
-    print(f"\n{'─'*60}")
-    print(f"PROCESSING TICKET")
-    print(f"{'─'*60}")
-    print(f"Input: {description}")
-
-    # Step 1: Classify
-    classification = classify_issue(description)
-    category   = classification.get("category", "UNKNOWN")
-    confidence = classification.get("confidence", 0.0)
-
-    print(f"\nClassification:")
-    print(f"  Category   : {category}")
-    print(f"  Confidence : {confidence}")
-    print(f"  Reason     : {classification.get('reason', 'N/A')}")
-
-    # Step 2: Route to tool based on category + confidence
-    if category == "UNKNOWN":
-        print(f"\nRouting: UNKNOWN category — no tool called")
-        tool_result = {
-            "status": "needs_human_review",
-            "reason": "Category could not be determined. Ticket requires manual triage."
-        }
-
-    elif confidence < CONFIDENCE_THRESHOLD:
-        print(f"\nRouting: confidence {confidence} below threshold {CONFIDENCE_THRESHOLD}")
-        tool_result = {
-            "status": "needs_human_review",
-            "reason": f"Confidence {confidence} too low for automated routing. "
-                      f"Classified as {category} but flagged for review."
-        }
-
-    else:
-        tool_fn = TOOL_REGISTRY.get(category)
-
-        if tool_fn is None:
-            print(f"\nRouting: no tool registered for {category}")
-            tool_result = {
-                "status": "no_tool_available",
-                "reason": f"No diagnostic tool registered for category {category}."
-            }
-        else:
-            tool_name = tool_fn.__name__
-            risk = "RISKY" if tool_name in RISKY_TOOLS else "SAFE"
-            print(f"\nRouting: {category} → {tool_name}() [{risk}]")
-
-            try:
-                tool_result = tool_fn()
-                print(f"\nTool Result:")
-                for key, val in tool_result.items():
-                    print(f"  {key}: {val}")
-            except Exception as e:
-                log.error(f"Tool execution failed: {e}")
-                tool_result = {
-                    "status": "tool_error",
-                    "reason": str(e)
-                }
-
-    print(f"{'─'*60}\n")
-
-    return {
-        "ticket":         description,
-        "classification": classification,
-        "tool_result":    tool_result,
-    }
-
 if __name__ == "__main__":
 
-    tickets = [
-        # DISK — clear classification, SAFE tool
-        "My MacBook Pro says the startup disk is almost full",
-
-        # APPLICATION — clear classification, SAFE tool
+    test_cases = [
+        "My Mac says the startup disk is almost full",
         "Citrix Workspace crashes immediately on launch",
-
-        # UPGRADE — clear classification, SAFE tool
-        "macOS Sonoma upgrade is stuck at 75%",
-
-        # PACKAGING — clear classification, SAFE tool
-        "VPN package installation fails with notarization error",
-
-        # UNKNOWN — low confidence, human review
-        "My computer feels slow today",
+        "The macOS Sonoma upgrade is stuck at 75%",
+        "Company VPN package fails — notarization error",
+        "Cannot connect to corporate VPN from home network",
+        "clear_cache_mac.sh fails with permission denied on Trash",
+        "My laptop is slow",
+        "My computer is hot",
+        "Error code 11001",
+        "Everything is broken",
     ]
 
     print("\n" + "="*60)
-    print("AUTOMATION SUPPORT AGENT — END-TO-END TEST")
+    print("ISSUE CLASSIFIER — TEST RUN")
     print("="*60)
 
-    all_results = []
-    for ticket in tickets:
-        result = process_ticket(ticket)
-        all_results.append(result)
-        time.sleep(2)  # respect free tier rate limits
+    results = []
+    for i, tc in enumerate(test_cases, 1):
+        print(f"\n[{i:02d}] Ticket    : {tc}")
+        result = classify_issue(tc)
+        print(f"     Category  : {result['category']}")
+        print(f"     Confidence: {result['confidence']}")
+        print(f"     Reason    : {result['reason']}")
+        results.append({"ticket": tc, **result})
+        time.sleep(2)
 
     print("\n" + "="*60)
-    print("END-TO-END SUMMARY")
+    print("SUMMARY")
     print("="*60)
-    for r in all_results:
-        cat    = r["classification"]["category"]
-        conf   = r["classification"]["confidence"]
-        status = r["tool_result"].get("status", "completed")
-        print(f"  {cat:12} ({conf:.2f}) → {status:20} | {r['ticket'][:40]}")
-
-    print(f"\nFinal result keys: {list(all_results[0].keys())}")
-
-    
+    for r in results:
+        flag = "⚠️ " if r['confidence'] < 0.75 else "✅"
+        print(f"{flag} {r['category']:15} ({r['confidence']}) — {r['ticket'][:45]}")
