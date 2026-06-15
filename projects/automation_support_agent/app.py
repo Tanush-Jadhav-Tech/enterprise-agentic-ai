@@ -13,6 +13,7 @@ import logging
 from openai import OpenAI
 from dotenv import load_dotenv
 from tools import TOOL_REGISTRY, SAFE_TOOLS, RISKY_TOOLS
+from report import generate_report
 
 load_dotenv()
 
@@ -201,13 +202,19 @@ def process_ticket(description: str) -> dict:
                     "status": "tool_error",
                     "reason": str(e)
                 }
+    # Step 4: Generate structured report
+    print(f"\nGenerating Report...")
+    report = generate_report(description, classification, tool_result)
 
+    print(f"\nStructured Report:")
+    print(json.dumps(report, indent=2))
     print(f"{'─'*60}\n")
 
     return {
         "ticket":         description,
         "classification": classification,
         "tool_result":    tool_result,
+        "report":         report,          # ← new field
     }
 
 if __name__ == "__main__":
