@@ -34,7 +34,7 @@ MODELS = [
     "meta-llama/llama-3.2-3b-instruct:free",
 ]
 
-
+    
 # ── Reuse safe_parse_json from Day 10 ─────────────────────────────────────────
 def safe_parse_json(text: str) -> dict:
     """4-layer defensive JSON parser — see Day 10 notes for full explanation."""

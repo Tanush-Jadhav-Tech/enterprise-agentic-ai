@@ -195,4 +195,6 @@ SAFE_TOOLS = [
 RISKY_TOOLS = [
     "clear_cache",
     "reinstall_package",
+    "force_reboot",
+    "run_cleanup_script",
 ]

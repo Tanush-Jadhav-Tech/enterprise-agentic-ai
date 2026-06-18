@@ -146,6 +146,55 @@ def classify_issue(description: str) -> dict:
 
 CONFIDENCE_THRESHOLD = 0.60
 
+# ── Step 2: approval_gate() ───────────────────────────────────────────────────
+
+SAFE_ACTIONS  = ["check_disk_space", "check_os_version",
+                 "check_running_processes", "read_sample_log",
+                 "check_package_status"]
+
+RISKY_ACTIONS = ["clear_cache", "reinstall_package",
+                 "force_reboot", "run_cleanup_script"]
+
+
+def approval_gate(action_name: str, details: str) -> bool:
+    """
+    Pause and ask human for approval before a risky action.
+
+    This is the Human-in-the-Loop (HITL) pattern.
+    Called ONLY for RISKY_ACTIONS — never for SAFE_ACTIONS.
+
+    Args:
+        action_name: name of the risky action being proposed
+        details:     what will happen if approved — shown to engineer
+
+    Returns:
+        True if approved, False if declined
+    """
+    print(f"\n{'='*60}")
+    print(f"[APPROVAL REQUIRED]")
+    print(f"{'='*60}")
+    print(f"Action  : {action_name}")
+    print(f"Details : {details}")
+    print(f"{'='*60}")
+    print(f"⚠️  This action cannot be undone.")
+    print()
+
+    while True:
+        answer = input("Approve this action? (yes/no): ").strip().lower()
+        if answer in ("yes", "y"):
+            log.info(f"Approval GRANTED for action: {action_name}")
+            return True
+        elif answer in ("no", "n"):
+            log.info(f"Approval DECLINED for action: {action_name}")
+            return False
+        else:
+            print("Please type 'yes' or 'no'")
+
+
+def is_risky(tool_name: str) -> bool:
+    """Check if a tool name is in the RISKY_ACTIONS list."""
+    return tool_name in RISKY_ACTIONS
+
 def process_ticket(description: str) -> dict:
     """
     Process a support ticket end-to-end:
@@ -189,30 +238,57 @@ def process_ticket(description: str) -> dict:
         }
 
     else:
-        tool_fn = TOOL_REGISTRY.get(category)
+            tool_fn = TOOL_REGISTRY.get(category)
 
-        if tool_fn is None:
-            print(f"\nRouting: no tool registered for {category}")
-            tool_result = {
-                "status": "no_tool_available",
-                "reason": f"No diagnostic tool registered for category {category}."
-            }
-        else:
-            tool_name = tool_fn.__name__
-            risk = "RISKY" if tool_name in RISKY_TOOLS else "SAFE"
-            print(f"\nRouting: {category} → {tool_name}() [{risk}]")
-
-            try:
-                tool_result = tool_fn()
-                print(f"\nTool Result:")
-                for key, val in tool_result.items():
-                    print(f"  {key}: {val}")
-            except Exception as e:
-                log.error(f"Tool execution failed: {e}")
+            if tool_fn is None:
+                print(f"\nRouting: no tool registered for {category}")
                 tool_result = {
-                    "status": "tool_error",
-                    "reason": str(e)
+                    "status": "no_tool_available",
+                    "reason": f"No diagnostic tool registered for category {category}."
                 }
+            else:
+                tool_name = tool_fn.__name__
+                risk = "RISKY" if is_risky(tool_name) else "SAFE"
+                print(f"\nRouting: {category} → {tool_name}() [{risk}]")
+
+                # ── APPROVAL GATE ─────────────────────────────────────────
+                if is_risky(tool_name):
+                    approved = approval_gate(
+                        action_name=tool_name,
+                        details=(
+                            f"About to run {tool_name}() on this system.\n"
+                            f"Ticket: {description[:100]}\n"
+                            f"Category: {category} (confidence: {confidence})"
+                        )
+                    )
+                    if not approved:
+                        print("\nAction declined. No changes made.")
+                        tool_result = {
+                            "status":  "declined_by_engineer",
+                            "reason":  f"Engineer declined to run {tool_name}(). "
+                                       f"No system changes made."
+                        }
+                        # Skip to report generation — don't call the tool
+                        pass
+                    else:
+                        try:
+                            tool_result = tool_fn()
+                            print(f"\nTool Result:")
+                            for key, val in tool_result.items():
+                                print(f"  {key}: {val}")
+                        except Exception as e:
+                            log.error(f"Tool execution failed: {e}")
+                            tool_result = {"status": "tool_error", "reason": str(e)}
+                else:
+                    # SAFE tool — run automatically, no approval needed
+                    try:
+                        tool_result = tool_fn()
+                        print(f"\nTool Result:")
+                        for key, val in tool_result.items():
+                            print(f"  {key}: {val}")
+                    except Exception as e:
+                        log.error(f"Tool execution failed: {e}")
+                        tool_result = {"status": "tool_error", "reason": str(e)}
     # Step 4: Generate structured report
     print(f"\nGenerating Report...")
     report = generate_report(description, classification, tool_result)
