@@ -1,0 +1,13 @@
+2024-01-15 08:00:01 INFO  Starting macOS 14.4 upgrade
+2024-01-15 08:00:15 INFO  Checking system requirements...
+2024-01-15 08:00:18 INFO  Requirements check passed
+2024-01-15 08:00:20 INFO  Beginning download (3.8 GB)
+2024-01-15 08:45:32 INFO  Download complete (12.4 GB cached + delta)
+2024-01-15 08:45:35 INFO  Verifying package integrity...
+2024-01-15 08:45:40 INFO  Package verified
+2024-01-15 08:46:00 INFO  Preparing installation...
+2024-01-15 09:12:18 ERROR Preparation failed: not enough space on Macintosh HD
+2024-01-15 09:12:19 ERROR Required: 35 GB, Available: 22 GB
+2024-01-15 09:12:20 WARN  Upgrade cancelled. System restored.
+2024-01-15 09:12:45 INFO  Rollback complete — system at macOS 14.2.1
+2024-01-15 09:13:00 INFO  Recommend: free at least 15 GB before retry

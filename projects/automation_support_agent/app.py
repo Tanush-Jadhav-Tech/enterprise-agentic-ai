@@ -105,20 +105,31 @@ def classify_issue(description: str) -> dict:
     """
     prompt = f"""You are an IT support classifier for Oracle Enterprise Engineering.
 
-Classify the following support ticket into exactly one category.
+    Your task: classify the support ticket below into exactly ONE category.
 
-Categories: {', '.join(CATEGORIES)}
+    Categories and when to use them:
+    - DISK: storage full, cannot save files, low disk space warnings
+    - UPGRADE: macOS upgrade stuck, failed, or cancelled for any reason
+            (even if the reason was disk space — the PRIMARY issue is upgrade)
+    - PACKAGING: pkg install failure, notarization error, code signing issue
+    - APPLICATION: app crash, won't launch, application error, ICA failure
+    - NETWORK: VPN issues, connectivity problems, network errors
+    - UNKNOWN: genuinely cannot determine — use sparingly
 
-Rules:
-- Reply ONLY with valid JSON — no explanation, no markdown
-- Use UNKNOWN if the ticket is too vague or ambiguous
-- confidence must be between 0.0 and 1.0
-- reason must be one sentence
+    Rules:
+    - Output ONLY a JSON object — no explanation, no reasoning, no preamble
+    - Do NOT write any text before or after the JSON
+    - Do NOT explain your thinking
+    - If log shows upgrade failed due to disk: category is UPGRADE (not DISK)
+    - If log shows app crash: category is APPLICATION (not UNKNOWN)
+    - confidence must be 0.0 to 1.0
+    - reason must be one sentence maximum
 
-Format:
-{{"category": "DISK", "confidence": 0.95, "reason": "one line explanation"}}
+    Output format — EXACTLY this, nothing else:
+    {{"category": "DISK", "confidence": 0.95, "reason": "one sentence"}}
 
-Ticket: {description}"""
+    Ticket or log to classify:
+    {description}"""
 
     raw = call_llm([{"role": "user", "content": prompt}], temperature=0)
     result = safe_parse_json(raw)

@@ -1,0 +1,12 @@
+User reports: MacBook Pro 16-inch (2021, M1 Max) running macOS 14.2.1
+
+Error: "Your disk is almost full" notification appeared during Zoom call.
+Cannot save files. Applications running slowly.
+
+Last cleanup was 6 months ago. No recent large downloads known.
+
+Additional context from user:
+- Issue started 2 days ago
+- Outlook keeps showing "cannot save attachment" error
+- Time Machine backup failed last night with "not enough free space"
+- User has not restarted machine in 3 weeks

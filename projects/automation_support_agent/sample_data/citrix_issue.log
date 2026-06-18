@@ -1,0 +1,17 @@
+2024-01-15 10:15:00 INFO  Citrix Workspace 23.9.0 starting...
+2024-01-15 10:15:01 INFO  Loading user profile: jsmith@oracle.com
+2024-01-15 10:15:02 INFO  Connecting to StoreFront: storefront.oracle.com
+2024-01-15 10:15:04 INFO  Authentication successful
+2024-01-15 10:15:05 INFO  Fetching published applications...
+2024-01-15 10:15:08 ERROR Application launch failed: ICA file corrupted
+2024-01-15 10:15:08 ERROR Exit code: -1073741819 (0xC0000005)
+2024-01-15 10:15:09 WARN  Crash signature: EXC_BAD_ACCESS
+2024-01-15 10:15:10 INFO  Citrix Workspace closed unexpectedly
+2024-01-15 10:15:11 INFO  Crash log saved: ~/Library/Logs/CrashReporter/
+                          CitrixWorkspace_2024-01-15-101510.ips
+
+Additional context from user:
+- Worked fine yesterday
+- No Citrix or macOS update since last working session
+- Other users on same network report same issue
+- Restarting Mac did not resolve
